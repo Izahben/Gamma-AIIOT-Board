@@ -8,7 +8,8 @@ Gamma AI + IoT is a custom embedded system I designed and built from scratch to 
 
 Gamma is an ESP32-S3 board you program like any other ESP32, but manage from a web app. You add devices, name them (say, *Beta*), and control them yourself. The plan is to also ask an AI to do it for you ("turn on Beta"), talk to the board by voice, and reach your devices from anywhere in the world.
 
-![Gamma PCB, 3D render](docs/images/gamma-pcb-3d.jpg)
+![Gamma PCB, 3D render](<img width="1508" height="1043" alt="poduct image" src="https://github.com/user-attachments/assets/39d08154-0a0b-4c88-b4ec-112006c5e951" />
+)
 *Gamma PCB design, 3D render. The PCB and enclosure are in production.*
 
 ## Hardware
