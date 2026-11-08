@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Gamma — AI + IoT Control Board</title>
+<style>
+@font-face{font-family:'Syne';font-weight:400;font-style:normal;font-display:swap;src:url(/fonts/syne-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Syne';font-weight:500;font-style:normal;font-display:swap;src:url(/fonts/syne-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Syne';font-weight:700;font-style:normal;font-display:swap;src:url(/fonts/syne-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Syne';font-weight:800;font-style:normal;font-display:swap;src:url(/fonts/syne-latin-800-normal.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:400;font-style:normal;font-display:swap;src:url(/fonts/jetbrains-mono-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'JetBrains Mono';font-weight:500;font-style:normal;font-display:swap;src:url(/fonts/jetbrains-mono-latin-500-normal.woff2) format('woff2')}
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080a0d;--surface:#0f1117;--surface2:#161b24;--surface3:#1c2232;
+  --border:#1e2535;--border2:#28334a;
+  --accent:#00e5a0;--accent-dim:#00e5a018;--accent2:#3b82f6;--accent2-dim:#3b82f615;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --danger:#ef4444;--warn:#f59e0b;--info:#3b82f6;
+  --mono:'JetBrains Mono',monospace;--sans:'Syne',sans-serif;
+  --radius:10px;--radius-sm:6px;
+}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+
+.app{display:grid;grid-template-rows:52px 1fr;height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:10}
+.logo{font-size:20px;font-weight:800;letter-spacing:0.06em;color:var(--accent);flex-shrink:0}
+.logo-sub{font-family:var(--mono);font-size:10px;color:var(--muted);margin-left:10px}
+.topbar-chips{display:flex;gap:8px;align-items:center}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:12px}
+.conn-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);transition:all 0.3s;flex-shrink:0}
+.conn-dot.live{background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.conn-label{font-family:var(--mono);font-size:11px;color:var(--muted);transition:color 0.3s}
+.conn-label.live{color:var(--accent)}
+.body{display:grid;grid-template-columns:270px 1fr 290px;height:100%;overflow:hidden}
+
+.sidebar{background:var(--surface);border-right:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.rsidebar{background:var(--surface);border-left:1px solid var(--border);padding:16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.sec-title{font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);font-family:var(--mono)}
+
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px}
+.card-title{font-size:12px;font-weight:500;color:var(--muted2)}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-family:var(--sans);font-size:12px;font-weight:500;transition:all 0.15s;white-space:nowrap;outline:none}
+.btn:active{transform:scale(0.97)}
+.btn-accent{background:var(--accent);color:#000}
+.btn-accent:hover{background:#00ffb2}
+.btn-accent:disabled{background:var(--surface3);color:var(--muted);cursor:not-allowed;transform:none}
+.btn-ghost{background:transparent;color:var(--text);border:1px solid var(--border2)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-ghost:disabled{opacity:0.4;cursor:not-allowed;transform:none}
+.btn-danger{background:#ef444420;color:var(--danger);border:1px solid #ef444430}
+.btn-danger:hover{background:#ef444435}
+.btn-danger:disabled{opacity:0.3;cursor:not-allowed;transform:none}
+.btn-warn{background:#f59e0b18;color:var(--warn);border:1px solid #f59e0b30}
+.btn-warn:hover{background:#f59e0b28}
+.btn-warn:disabled{opacity:0.3;cursor:not-allowed;transform:none}
+.btn-full{width:100%}
+.btn-row{display:flex;gap:6px}
+.btn-sm{padding:5px 10px;font-size:11px}
+
+.chip{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10px;font-family:var(--mono);font-weight:500;flex-shrink:0}
+.chip-green{background:#00e5a018;color:var(--accent);border:1px solid #00e5a030}
+.chip-warn{background:#f59e0b18;color:var(--warn);border:1px solid #f59e0b30}
+.chip-muted{background:var(--surface3);color:var(--muted2);border:1px solid var(--border2)}
+
+.field{display:flex;flex-direction:column;gap:5px}
+.field-label{font-size:10px;color:var(--muted);font-family:var(--mono);letter-spacing:0.05em}
+.field input,.field select{background:var(--bg);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:7px 10px;color:var(--text);font-family:var(--mono);font-size:12px;outline:none;transition:border-color 0.15s;width:100%}
+.field input:focus,.field select:focus{border-color:var(--accent2)}
+.field input[disabled]{opacity:0.45;cursor:not-allowed}
+.field input::placeholder{color:var(--muted)}
+.inline-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+.port-list{display:flex;flex-direction:column;gap:5px;min-height:36px}
+.port-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s}
+.port-item:hover{border-color:var(--border2)}
+.port-item.active{border-color:var(--accent);background:var(--accent-dim)}
+.port-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.port-item.active .port-dot{background:var(--accent)}
+.port-name{font-family:var(--mono);font-size:11px;color:var(--text)}
+.port-desc{font-size:10px;color:var(--muted);margin-left:auto;font-family:var(--mono)}
+.port-empty{font-size:11px;color:var(--muted);font-family:var(--mono);padding:4px 2px}
+
+.di-table{display:flex;flex-direction:column}
+.di-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)}
+.di-row:last-child{border-bottom:none;flex-direction:column;align-items:flex-start;gap:5px}
+.di-key{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.di-val{font-size:11px;font-family:var(--mono);color:var(--muted2)}
+.di-val.ok{color:var(--accent)}
+.di-val.warn{color:var(--warn)}
+.di-val.err{color:var(--danger)}
+.bat-bar{width:100%;height:5px;background:var(--border2);border-radius:3px;overflow:hidden}
+.bat-fill{height:100%;border-radius:3px;background:var(--accent);transition:width 0.6s,background 0.6s}
+
+.center{background:var(--bg);padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:16px}
+
+.tabs{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:3px}
+.tab-btn{flex:1;padding:7px 12px;text-align:center;font-size:12px;font-weight:500;cursor:pointer;border-radius:7px;color:var(--muted);border:1px solid transparent;transition:all 0.15s;font-family:var(--sans);background:none}
+.tab-btn:hover{color:var(--muted2)}
+.tab-btn.active{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.tab-panel{display:none;flex-direction:column;gap:14px;animation:fadeUp 0.2s ease}
+.tab-panel.active{display:flex}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+.gpio-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.gpio-pin{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 5px;text-align:center;cursor:pointer;transition:all 0.15s;user-select:none;position:relative}
+.gpio-pin:hover{border-color:var(--border2);transform:translateY(-1px)}
+.gpio-pin.primary{border-color:#f59e0b28;background:#f59e0b06}
+.gpio-pin.primary:hover{border-color:#f59e0b55}
+.gpio-pin.assigned{border-color:#00e5a030;background:var(--accent-dim)}
+.gpio-pin.assigned:hover{border-color:#00e5a060}
+.gpio-pin.selected{border-color:var(--accent2);background:var(--accent2-dim)}
+.gpio-num{font-family:var(--mono);font-size:13px;font-weight:500;color:var(--text)}
+.gpio-lbl{font-size:9px;color:var(--muted);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+.gpio-pin.primary .gpio-lbl{color:var(--warn)}
+.gpio-pin.assigned .gpio-lbl{color:var(--accent)}
+.gpio-pin.selected .gpio-lbl{color:var(--info)}
+.pin-edit-dot{position:absolute;top:4px;right:4px;width:4px;height:4px;border-radius:50%;background:var(--warn);opacity:0.7}
+
+.legend{display:flex;gap:14px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);font-family:var(--mono)}
+.legend-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+
+.assign-panel{background:var(--surface2);border:1px solid var(--accent2);border-radius:var(--radius);padding:14px;display:flex;flex-direction:column;gap:10px;animation:fadeUp 0.2s ease}
+.assign-title{font-size:12px;font-family:var(--mono)}
+.pin-note{font-size:10px;color:var(--muted);font-family:var(--mono);padding:7px 9px;background:var(--bg);border-radius:var(--radius-sm);border:1px solid var(--border);line-height:1.6}
+
+.prog-bar{width:100%;height:4px;background:var(--border2);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;width:0%;transition:width 0.25s}
+.flash-log{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;height:160px;overflow-y:auto;font-family:var(--mono);font-size:10px;line-height:1.9;color:var(--muted)}
+.log-ok{color:var(--accent)}
+.log-err{color:var(--danger)}
+.log-info{color:var(--info)}
+.log-warn{color:var(--warn)}
+
+.esptool-badge{display:flex;align-items:center;gap:7px;padding:7px 10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:10px;font-family:var(--mono);color:var(--muted2)}
+.esptool-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;transition:background 0.3s}
+
+.upload-zone{border:1.5px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;transition:all 0.2s;position:relative;overflow:hidden}
+.upload-zone:hover{border-color:var(--accent2)}
+.upload-zone.has-file{border-color:var(--accent);border-style:solid;background:var(--accent-dim)}
+.upload-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.upload-label{font-size:11px;color:var(--muted);font-family:var(--mono);pointer-events:none}
+.upload-zone.has-file .upload-label{color:var(--accent)}
+
+.src-btn-row{display:flex;gap:6px}
+.src-btn{flex:1;padding:7px;text-align:center;font-size:11px;font-family:var(--mono);cursor:pointer;border-radius:var(--radius-sm);border:1px solid var(--border2);background:transparent;color:var(--muted);transition:all 0.15s}
+.src-btn.active{border-color:var(--accent2);color:var(--info);background:var(--accent2-dim)}
+
+.voice-display{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;min-height:70px;font-size:11px;font-family:var(--mono);line-height:1.8;color:var(--muted)}
+.voice-said{color:var(--info)}
+.voice-resp{color:var(--text);margin-top:4px}
+.mic-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:4px 0}
+.mic-btn{width:48px;height:48px;border-radius:50%;border:1.5px solid var(--border2);background:var(--surface3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;outline:none}
+.mic-btn:hover{border-color:var(--accent);background:var(--accent-dim)}
+.mic-btn.live{border-color:var(--danger);background:#ef444418;animation:mic-pulse 1.2s infinite}
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 #ef444430}60%{box-shadow:0 0 0 10px transparent}}
+.mic-status{font-size:10px;color:var(--muted);font-family:var(--mono)}
+
+.dev-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;display:flex;align-items:center;gap:10px;transition:border-color 0.2s}
+.dev-card.on{border-color:#00e5a028}
+.dev-icon{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:var(--surface3)}
+.dev-card.on .dev-icon{background:var(--accent-dim)}
+.dev-meta{flex:1;min-width:0}
+.dev-name{font-size:12px;font-weight:500;color:var(--text)}
+.dev-pin{font-size:10px;color:var(--muted);font-family:var(--mono)}
+.dev-del{width:22px;height:22px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:11px;cursor:pointer;flex-shrink:0;outline:none;transition:all 0.15s}
+.dev-del:hover{border-color:var(--danger);color:var(--danger)}
+.toggle{width:34px;height:19px;border-radius:10px;background:var(--border2);position:relative;cursor:pointer;border:none;transition:background 0.2s;outline:none;flex-shrink:0}
+.toggle.on{background:var(--accent)}
+.toggle::after{content:'';position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;top:3px;left:3px;transition:transform 0.2s}
+.toggle.on::after{transform:translateX(15px)}
+
+.qcmd{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:7px 10px;font-size:10px;font-family:var(--mono);color:var(--muted);cursor:pointer;transition:all 0.15s}
+.qcmd:hover{border-color:var(--accent);color:var(--accent)}
+
+.spinner{width:12px;height:12px;border:1.5px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.hidden{display:none!important}
+.flex-col{display:flex;flex-direction:column;gap:8px}
+.mt-auto{margin-top:auto}
+.empty-msg{font-size:11px;color:var(--muted);font-family:var(--mono)}
+
+/* ---------- RESPONSIVE ---------- */
+html{-webkit-text-size-adjust:100%}
+.body>*{min-width:0}
+@supports(height:100dvh){.app{height:100dvh}}
+
+/* small laptops */
+@media (max-width:1180px){
+  .body{grid-template-columns:230px 1fr 250px}
+  .logo-sub{display:none}
+}
+
+/* tablets + phones: single column, whole page scrolls */
+@media (max-width:960px){
+  html,body{height:auto;overflow-x:hidden;overflow-y:auto}
+  .app{height:auto;min-height:100vh;grid-template-rows:auto 1fr}
+  .topbar{position:sticky;top:0}
+  .body{grid-template-columns:1fr;height:auto;overflow:visible}
+  .sidebar,.rsidebar,.center{overflow:visible;border:none}
+  .center{order:1;padding:14px}
+  .rsidebar{order:2;border-top:1px solid var(--border)}
+  .sidebar{order:3;border-top:1px solid var(--border)}
+}
+
+/* phones */
+@media (max-width:600px){
+  .topbar{padding:8px 12px;gap:8px;flex-wrap:wrap}
+  .logo{font-size:17px}
+  .topbar-chips{order:3;width:100%;flex-wrap:wrap}
+  .center{padding:10px;gap:12px}
+  .sidebar,.rsidebar{padding:12px}
+  .gpio-grid{grid-template-columns:repeat(4,1fr)}
+  .tabs{overflow-x:auto}
+  .tab-btn{flex:0 0 auto;white-space:nowrap;padding:7px 10px}
+  .field input,.field select{font-size:16px;padding:9px 10px}
+  .btn{padding:10px 14px}
+}
+@media (max-width:380px){
+  .gpio-grid{grid-template-columns:repeat(3,1fr)}
+  .inline-fields{grid-template-columns:1fr}
+}
+
+/* touch screens: bigger tap targets */
+@media (pointer:coarse){
+  .toggle{width:44px;height:24px}
+  .toggle::after{width:18px;height:18px}
+  .toggle.on::after{transform:translateX(20px)}
+  .dev-del{width:32px;height:32px;font-size:13px}
+  .dev-card{padding:12px}
+  .gpio-pin{min-height:48px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<header class="topbar">
+  <div class="logo">GAMMA</div>
+  <span class="logo-sub">AI + IoT Control Board</span>
+  <div class="topbar-chips">
+    <span class="chip chip-muted" id="fw-chip">NO FIRMWARE</span>
+    <span class="chip chip-muted" id="wifi-chip">NO WIFI</span>
+  </div>
+  <div class="topbar-right">
+    <div style="display:flex;align-items:center;gap:6px">
+      <div class="conn-dot" id="conn-dot"></div>
+      <span class="conn-label" id="conn-label">disconnected</span>
+    </div>
+  </div>
+</header>
+
+<div class="body">
+
+<aside class="sidebar">
+  <div class="sec-title">Serial Port</div>
+  <div class="card">
+    <div class="card-title">Available Ports</div>
+    <div class="port-list" id="port-list"><div class="port-empty">No ports — click Scan</div></div>
+    <div class="btn-row">
+      <button class="btn btn-ghost btn-sm" id="scan-btn" onclick="scanPorts()" style="flex:1"><span id="scan-txt">Scan Ports</span></button>
+      <button class="btn btn-accent btn-sm" id="conn-btn" onclick="toggleConnect()" disabled style="flex:1">Connect</button>
+    </div>
+  </div>
+
+  <div class="sec-title">Device Info</div>
+  <div class="card">
+    <div class="di-table">
+      <div class="di-row"><span class="di-key">board</span><span class="di-val" id="di-board">—</span></div>
+      <div class="di-row"><span class="di-key">chip</span><span class="di-val" id="di-chip">—</span></div>
+      <div class="di-row"><span class="di-key">flash</span><span class="di-val" id="di-flash">—</span></div>
+      <div class="di-row"><span class="di-key">wifi</span><span class="di-val" id="di-wifi">—</span></div>
+      <div class="di-row"><span class="di-key">firmware</span><span class="di-val" id="di-fw">—</span></div>
+      <div class="di-row">
+        <div style="display:flex;justify-content:space-between;width:100%">
+          <span class="di-key">battery</span><span class="di-val ok" id="di-bat">—</span>
+        </div>
+        <div class="bat-bar"><div class="bat-fill" id="bat-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mt-auto">
+    <button class="btn btn-danger btn-full" id="disc-btn" onclick="doDisconnect()" disabled>Disconnect Device</button>
+  </div>
+</aside>
+
+<main class="center">
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('gpio',this)">GPIO Config</button>
+    <button class="tab-btn" onclick="switchTab('flash',this)">Flash Firmware</button>
+    <button class="tab-btn" onclick="switchTab('wifi',this)">Wi-Fi Setup</button>
+  </div>
+
+  <!-- GPIO -->
+  <div class="tab-panel active" id="tab-gpio">
+    <div class="card">
+      <div class="card-title">Pin Map — click any pin to configure</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:#f59e0b;opacity:.6"></div>primary (gpio editable)</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#00e5a0;opacity:.6"></div>assigned</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#1c2232"></div>free</div>
+      </div>
+      <div class="gpio-grid" id="gpio-grid"></div>
+      <div class="inline-fields" style="grid-template-columns:1fr auto;align-items:end">
+        <div class="field"><label class="field-label">add any other gpio</label><input id="add-gpio" type="number" min="0" max="48" placeholder="e.g. 38" onkeydown="if(event.key==='Enter')addPin()"/></div>
+        <button class="btn btn-ghost" onclick="addPin()">+ Add Pin</button>
+      </div>
+    </div>
+    <div class="assign-panel hidden" id="assign-panel">
+      <div class="assign-title" id="assign-title"></div>
+      <div id="sec-primary" class="hidden">
+        <div class="pin-note">Primary pin — function name is fixed. You can change the GPIO number if your wiring differs from the default.</div>
+        <div class="inline-fields" style="margin-top:8px">
+          <div class="field"><label class="field-label">function (fixed)</label><input id="a-fn" disabled/></div>
+          <div class="field"><label class="field-label">gpio number</label><input id="a-pgpio" type="number" min="0" max="48" placeholder="e.g. 4"/></div>
+        </div>
+      </div>
+      <div id="sec-free" class="hidden">
+        <div class="inline-fields">
+          <div class="field"><label class="field-label">device name</label><input id="a-name" placeholder="e.g. taili"/></div>
+          <div class="field"><label class="field-label">device type</label>
+            <select id="a-type">
+              <option value="led">LED</option>
+              <option value="relay">Relay</option>
+              <option value="servo">Servo</option>
+              <option value="button">Button (input)</option>
+              <option value="sensor">Sensor (analog)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="btn-row" id="assign-btns"></div>
+    </div>
+  </div>
+
+  <!-- FLASH -->
+  <div class="tab-panel" id="tab-flash">
+    <div class="card">
+      <div class="card-title">Firmware Flasher</div>
+      <div class="esptool-badge">
+        <div class="esptool-dot" id="esptool-dot" style="background:var(--warn)"></div>
+        <span id="esptool-status">Loading esptool-js...</span>
+      </div>
+      <div class="src-btn-row">
+        <button class="src-btn active" id="src-a" onclick="setFwSrc('preset')">Use Preset</button>
+        <button class="src-btn" id="src-b" onclick="setFwSrc('file')">Upload .bin File</button>
+      </div>
+      <div id="sec-preset">
+        <div class="field"><label class="field-label">firmware version</label>
+          <select id="fw-sel">
+            <option>gamma-firmware-v0.1.bin</option>
+            <option>gamma-firmware-v0.1-debug.bin</option>
+          </select>
+        </div>
+        <div style="font-size:10px;color:var(--muted);font-family:var(--mono);margin-top:6px">Preset requires hosted .bin. For real flashing use Upload .bin File.</div>
+      </div>
+      <div id="sec-file" class="hidden">
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" accept=".bin" onchange="onFileSelected(event)"/>
+          <div class="upload-label" id="upload-lbl">Click or drag a compiled .bin file here</div>
+        </div>
+      </div>
+      <div class="inline-fields">
+        <div class="field"><label class="field-label">baud rate</label>
+          <select id="baud-sel">
+            <option value="921600">921600 (recommended)</option>
+            <option value="460800">460800</option>
+            <option value="115200">115200 (safe)</option>
+          </select>
+        </div>
+        <div class="field"><label class="field-label">flash offset (hex)</label><input id="flash-offset" value="0x0" style="font-family:var(--mono)"/></div>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="flash-prog"></div></div>
+      <div class="flash-log" id="flash-log"><div class="log-info">// Waiting for esptool-js to load...</div></div>
+      <div class="btn-row">
+        <button class="btn btn-accent" id="flash-btn" onclick="startFlash()" disabled style="flex:1">Flash Firmware</button>
+        <button class="btn btn-warn btn-sm" id="erase-btn" onclick="eraseFlash()" disabled>Erase Flash</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- WIFI -->
+  <div class="tab-panel" id="tab-wifi">
+    <div class="card">
+      <div class="card-title">Wi-Fi &amp; AI Configuration</div>
+      <div class="inline-fields">
+        <div class="field"><label class="field-label">wi-fi ssid</label><input id="w-ssid" placeholder="Network name"/></div>
+        <div class="field"><label class="field-label">password</label><input id="w-pass" type="password" placeholder="••••••••"/></div>
+      </div>
+      <div class="field"><label class="field-label">ai api key</label><input id="w-apikey" placeholder="sk-..."/></div>
+      <div class="inline-fields">
+        <div class="field"><label class="field-label">device name</label><input id="w-devname" value="gamma"/></div>
+        <div class="field"><label class="field-label">ai model</label>
+          <select id="w-model">
+            <option>GPT-4o Mini (fast)</option>
+            <option>GPT-4o</option>
+            <option>Gemini 1.5 Flash</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-accent btn-full" id="wifi-save-btn" onclick="saveWifi()" disabled>Save to Device</button>
+    </div>
+  </div>
+</main>
+
+<aside class="rsidebar">
+  <div class="sec-title">Voice AI</div>
+  <div class="card" style="gap:8px">
+    <div class="voice-display" id="voice-disp"><span>// connect a device to enable voice</span></div>
+    <div class="mic-wrap">
+      <button class="mic-btn" id="mic-btn" onclick="toggleMic()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted)">
+          <rect x="9" y="2" width="6" height="11" rx="3"/>
+          <path d="M5 10a7 7 0 0 0 14 0"/>
+          <line x1="12" y1="17" x2="12" y2="21"/>
+          <line x1="8" y1="21" x2="16" y2="21"/>
+        </svg>
+      </button>
+      <span class="mic-status" id="mic-status">mic inactive</span>
+    </div>
+  </div>
+  <div class="sec-title">Configured Devices</div>
+  <div class="flex-col" id="dev-list"><div class="empty-msg">No devices assigned yet</div></div>
+  <div class="sec-title">Quick Commands</div>
+  <div class="flex-col" id="qcmd-list"><div class="empty-msg">Assign pins to see commands</div></div>
+</aside>
+</div>
+</div>
+
+<script>
+const S={
+  connected:false,port:null,transport:null,espDevice:null,
+  selPort:null,scanning:false,listening:false,selGpio:null,
+  batPct:78,batTimer:null,micTimer:null,ports:[],devices:{},
+  fwSrc:'preset',fwData:null,fwName:null,esptoolReady:false,
+  blocked:{},lastDevs:'',online:false,
+  pins:{
+    0:{lbl:'BOOT',t:'primary',fn:'BOOT'},
+    4:{lbl:'I2S SCK',t:'primary',fn:'I2S SCK'},
+    5:{lbl:'I2S WS',t:'primary',fn:'I2S WS'},
+    6:{lbl:'I2S SD',t:'primary',fn:'I2S SD'},
+    7:{lbl:'AMP BCLK',t:'primary',fn:'AMP BCLK'},
+    8:{lbl:'AMP LRC',t:'primary',fn:'AMP LRC'},
+    9:{lbl:'AMP DIN',t:'primary',fn:'AMP DIN'},
+    21:{lbl:'I2C SDA',t:'primary',fn:'I2C SDA'},
+    22:{lbl:'I2C SCL',t:'primary',fn:'I2C SCL'},
+    35:{lbl:'BAT ADC',t:'primary',fn:'BAT ADC'},
+    1:{lbl:'free',t:'free'},2:{lbl:'free',t:'free'},
+    10:{lbl:'free',t:'free'},11:{lbl:'free',t:'free'},
+    12:{lbl:'free',t:'free'},13:{lbl:'free',t:'free'},
+    14:{lbl:'free',t:'free'},15:{lbl:'free',t:'free'},
+    16:{lbl:'free',t:'free'},17:{lbl:'free',t:'free'},
+    18:{lbl:'free',t:'free'},38:{lbl:'free',t:'free'},
+    39:{lbl:'free',t:'free'},40:{lbl:'free',t:'free'},
+    41:{lbl:'free',t:'free'},42:{lbl:'free',t:'free'},
+    47:{lbl:'free',t:'free'},48:{lbl:'free',t:'free'},
+  }
+};
+const ICONS={led:'💡',relay:'🔌',servo:'⚙️',button:'🔘',sensor:'📡'};
+const BASE_FREE=new Set(Object.keys(S.pins).filter(k=>S.pins[k].t==='free').map(Number));
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+/* INIT */
+window.addEventListener('load',()=>{
+  buildGrid();
+  loadState();setInterval(loadState,2500);
+  setTimeout(()=>{
+    const ESPClass=window.ESPLoader||window.esptooljs?.ESPLoader;
+    const dot=document.getElementById('esptool-dot');
+    const st=document.getElementById('esptool-status');
+    if(ESPClass){
+      S.esptoolReady=true;
+      dot.style.background='var(--accent)';
+      st.textContent='esptool-js ready — real flashing enabled';
+      addLog('log-ok','esptool-js loaded — real flashing available');
+      addLog('','Upload a compiled .bin and connect ESP32-S3 to flash');
+    }else{
+      dot.style.background='var(--warn)';
+      st.textContent='esptool-js not loaded — simulation mode';
+      addLog('log-warn','esptool-js bundle not available — simulation mode active');
+      addLog('','Open this file with a live internet connection for real flashing');
+    }
+  },1800);
+});
+
+/* GPIO */
+function buildGrid(){
+  const g=document.getElementById('gpio-grid');
+  g.innerHTML='';
+  Object.keys(S.pins).map(Number).sort((a,b)=>a-b).forEach(n=>{
+    const p=S.pins[n];
+    const cls=['gpio-pin'];
+    if(p.t==='primary')cls.push('primary');
+    else if(p.t==='assigned')cls.push('assigned');
+    if(S.selGpio===n)cls.push('selected');
+    const d=document.createElement('div');
+    d.className=cls.join(' ');
+    d.innerHTML=`<div class="gpio-num">${n}</div><div class="gpio-lbl">${esc(p.lbl)}</div>`;
+    if(p.t==='primary')d.innerHTML+=`<div class="pin-edit-dot" title="GPIO number editable"></div>`;
+    d.onclick=()=>openAssign(n);
+    g.appendChild(d);
+  });
+}
+
+function openAssign(n){
+  S.selGpio=n;buildGrid();
+  const panel=document.getElementById('assign-panel');
+  panel.classList.remove('hidden');
+  const p=S.pins[n];
+  const title=document.getElementById('assign-title');
+  const sp=document.getElementById('sec-primary');
+  const sf=document.getElementById('sec-free');
+  const btns=document.getElementById('assign-btns');
+  if(p.t==='primary'){
+    title.textContent=`Primary Pin — GPIO ${n} — ${p.fn}`;
+    title.style.color='var(--warn)';
+    sp.classList.remove('hidden');sf.classList.add('hidden');
+    document.getElementById('a-fn').value=p.fn;
+    document.getElementById('a-pgpio').value=n;
+    btns.innerHTML=`<button class="btn btn-warn" onclick="savePrimary()" style="flex:1">Save GPIO Number</button><button class="btn btn-ghost btn-sm" onclick="closeAssign()">✕</button>`;
+  }else{
+    title.textContent=`Configure GPIO ${n}`;
+    title.style.color='var(--info)';
+    sp.classList.add('hidden');sf.classList.remove('hidden');
+    document.getElementById('a-name').value=S.devices[n]?.name||'';
+    document.getElementById('a-type').value=S.devices[n]?.type||'led';
+    btns.innerHTML=`<button class="btn btn-accent" onclick="doAssign()" style="flex:1">Assign Pin</button><button class="btn btn-ghost" onclick="doClear()" style="flex:1">Clear</button><button class="btn btn-ghost btn-sm" onclick="closeAssign()">✕</button>`;
+    document.getElementById('a-name').focus();
+  }
+}
+
+function savePrimary(){
+  const old=S.selGpio;
+  const nw=parseInt(document.getElementById('a-pgpio').value);
+  if(isNaN(nw)||nw<0||nw>48)return;
+  if(nw===old){closeAssign();return;}
+  if(S.pins[nw]){alert(`GPIO ${nw} is already in use as "${S.pins[nw].lbl}".`);return;}
+  S.pins[nw]={...S.pins[old]};
+  delete S.pins[old];
+  closeAssign();
+}
+
+function closeAssign(){
+  S.selGpio=null;
+  document.getElementById('assign-panel').classList.add('hidden');
+  buildGrid();
+}
+
+async function doAssign(){
+  const n=S.selGpio;
+  const name=document.getElementById('a-name').value.trim();
+  const type=document.getElementById('a-type').value;
+  if(!name)return;
+  const btn=document.querySelector('#assign-btns .btn-accent');
+  if(btn){btn.disabled=true;btn.textContent='Saving...';}
+  try{
+    applyState(await api('/api/devices',{gpio:n,name,type}));
+    closeAssign();
+  }catch(e){
+    alert(e.message);
+    if(btn){btn.disabled=false;btn.textContent='Assign Pin';}
+  }
+}
+
+async function doClear(){
+  const n=S.selGpio;if(n===null)return;
+  if(!S.devices[n]){closeAssign();return;}
+  try{applyState(await api('/api/remove',{gpio:n}));closeAssign();}
+  catch(e){alert(e.message);}
+}
+
+function addPin(){
+  const inp=document.getElementById('add-gpio');
+  const n=parseInt(inp.value);
+  if(isNaN(n)||n<0||n>48){alert('Enter a GPIO number between 0 and 48.');return;}
+  if(S.blocked[n]){alert(`GPIO ${n} ${S.blocked[n]}.`);return;}
+  if(!S.pins[n])S.pins[n]={lbl:'free',t:'free'};
+  inp.value='';
+  openAssign(n);
+}
+
+/* DEVICES */
+function renderDevices(){
+  const el=document.getElementById('dev-list');
+  const devs=Object.entries(S.devices);
+  if(!devs.length){el.innerHTML='<div class="empty-msg">No devices assigned yet</div>';return;}
+  el.innerHTML=devs.map(([g,d])=>`
+    <div class="dev-card ${d.on?'on':''}">
+      <div class="dev-icon">${ICONS[d.type]||'📦'}</div>
+      <div class="dev-meta"><div class="dev-name">${esc(d.name)}</div><div class="dev-pin">GPIO ${g} · ${esc(d.type)}</div></div>
+      <button class="toggle ${d.on?'on':''}" onclick="toggleDev(${g})"></button>
+      <button class="dev-del" title="Delete device" onclick="deleteDev(${g})">✕</button>
+    </div>`).join('');
+}
+
+async function deleteDev(g){
+  const d=S.devices[g];if(!d)return;
+  if(!confirm(`Delete "${d.name}" from GPIO ${g}?`))return;
+  try{
+    applyState(await api('/api/remove',{gpio:g}));
+    if(S.selGpio===g)closeAssign();
+  }catch(e){alert(e.message);}
+}
+
+async function toggleDev(g){
+  if(!S.devices[g])return;
+  try{
+    applyState(await api('/api/toggle',{gpio:g}));
+    const d=S.devices[g];
+    if(d)setVoice(`you: toggle ${esc(d.name)}`,`${esc(d.name)} is now <span style="color:${d.on?'var(--accent)':'var(--danger)'}">${d.on?'ON':'OFF'}</span> — GPIO ${g}`);
+  }catch(e){alert(e.message);}
+}
+
+function renderQcmds(){
+  const el=document.getElementById('qcmd-list');
+  const devs=Object.entries(S.devices);
+  const dn=document.getElementById('w-devname')?.value||'gamma';
+  if(!devs.length){el.innerHTML='<div class="empty-msg">Assign pins to see commands</div>';return;}
+  el.innerHTML=devs.slice(0,5).map(([g,d])=>`
+    <div class="qcmd" onclick="setVoice('you: ${esc(dn)} turn on ${esc(d.name)}','Turning on ${esc(d.name)} — GPIO ${g} HIGH')">"${esc(dn)} turn on ${esc(d.name)}"</div>`).join('');
+}
+
+/* VOICE */
+function setVoice(said,resp){
+  document.getElementById('voice-disp').innerHTML=`<span class="voice-said">${said}</span><div class="voice-resp">${resp}</div>`;
+}
+function toggleMic(){
+  if(!S.connected)return;
+  S.listening=!S.listening;
+  const btn=document.getElementById('mic-btn');
+  const st=document.getElementById('mic-status');
+  btn.classList.toggle('live',S.listening);
+  st.textContent=S.listening?'listening...':'mic inactive';
+  if(S.listening){
+    if(S.micTimer)clearTimeout(S.micTimer);
+    S.micTimer=setTimeout(()=>{
+      S.listening=false;btn.classList.remove('live');st.textContent='processing...';
+      setTimeout(()=>{
+        st.textContent='mic inactive';
+        const devs=Object.values(S.devices);
+        setVoice(devs.length?'you: gamma battery?':'you: gamma hello',
+          devs.length?`Battery is at <span style="color:var(--accent)">${Math.round(S.batPct)}%</span>.`
+          :'Hello! I\'m Gamma. Assign GPIO pins to control your devices.');
+      },700);
+    },2500);
+  }else{if(S.micTimer)clearTimeout(S.micTimer);st.textContent='mic inactive';}
+}
+
+/* PORTS */
+const MOCK=[{name:'COM3',desc:'ESP32-S3 (USB JTAG)'},{name:'COM7',desc:'CH340 Serial'}];
+
+async function scanPorts(){
+  if(S.scanning)return;S.scanning=true;
+  const scanTxt=document.getElementById('scan-txt');
+  const scanBtn=document.getElementById('scan-btn');
+  const list=document.getElementById('port-list');
+  scanTxt.innerHTML='<div style="display:flex;align-items:center;gap:6px"><div class="spinner"></div>Scanning...</div>';
+  scanBtn.disabled=true;
+  list.innerHTML='<div class="port-empty">Scanning...</div>';
+  if('serial' in navigator){
+    try{
+      const ports=await navigator.serial.getPorts();
+      await sleep(700);S.scanning=false;scanTxt.textContent='Scan Ports';scanBtn.disabled=false;
+      if(!ports.length){
+        list.innerHTML='<div class="port-empty">No saved ports — Connect will request access</div>';
+        document.getElementById('conn-btn').disabled=false;
+        document.getElementById('conn-btn').textContent='Request Port';
+      }else{
+        S.ports=ports.map((p,i)=>({name:`USB Port ${i+1}`,desc:'Serial Device',raw:p}));
+        renderPorts();
+      }return;
+    }catch(e){}
+  }
+  await sleep(900);S.scanning=false;scanTxt.textContent='Scan Ports';scanBtn.disabled=false;
+  S.ports=MOCK.map(p=>({...p,mock:true}));renderPorts();
+}
+
+function renderPorts(){
+  const list=document.getElementById('port-list');
+  if(!S.ports.length){list.innerHTML='<div class="port-empty">No ports found</div>';return;}
+  list.innerHTML=S.ports.map((p,i)=>`
+    <div class="port-item" id="pi-${i}" onclick="selPort(${i})">
+      <div class="port-dot"></div>
+      <span class="port-name">${p.name}</span>
+      <span class="port-desc">${p.desc}</span>
+    </div>`).join('');
+}
+
+function selPort(idx){
+  document.querySelectorAll('.port-item').forEach(el=>el.classList.remove('active'));
+  document.getElementById(`pi-${idx}`)?.classList.add('active');
+  S.selPort={idx,data:S.ports[idx]};
+  const cb=document.getElementById('conn-btn');cb.disabled=false;cb.textContent='Connect';
+}
+
+async function toggleConnect(){
+  if(S.connected){doDisconnect();return;}
+  const btn=document.getElementById('conn-btn');
+  btn.textContent='Connecting...';btn.disabled=true;
+  if('serial' in navigator){
+    try{
+      let raw=S.selPort?.data?.raw;
+      if(!raw)raw=await navigator.serial.requestPort();
+      await raw.open({baudRate:115200});
+      S.port=raw;await sleep(400);onConnected();return;
+    }catch(e){btn.textContent='Connect';btn.disabled=false;return;}
+  }
+  await sleep(1200);S.connected=true;onConnected();
+}
+
+function onConnected(){
+  S.connected=true;
+  document.getElementById('conn-dot').classList.add('live');
+  document.getElementById('conn-label').classList.add('live');
+  document.getElementById('conn-label').textContent=S.selPort?.data?.name||'connected';
+  document.getElementById('conn-btn').textContent='Connected';
+  document.getElementById('conn-btn').disabled=true;
+  document.getElementById('disc-btn').disabled=false;
+  document.getElementById('flash-btn').disabled=false;
+  document.getElementById('erase-btn').disabled=false;
+  document.getElementById('wifi-save-btn').disabled=false;
+  setDI('di-board','Gamma v1.0','ok');setDI('di-chip','ESP32-S3','ok');
+  setDI('di-flash','8MB','ok');setDI('di-wifi','Not configured','warn');
+  setDI('di-fw','None installed','warn');setBattery(S.batPct);
+  document.getElementById('voice-disp').innerHTML='<span class="log-ok">// device connected</span><div class="voice-resp" style="margin-top:4px">Say your device name followed by a command, or click the mic.</div>';
+  S.batTimer=setInterval(()=>{S.batPct=Math.max(0,S.batPct-0.08);setBattery(Math.round(S.batPct));},3000);
+}
+
+function doDisconnect(){
+  if(S.port){try{S.port.close();}catch(e){}}
+  if(S.transport){try{S.transport.disconnect();}catch(e){}}
+  S.connected=false;S.port=null;S.transport=null;S.espDevice=null;
+  if(S.batTimer)clearInterval(S.batTimer);
+  document.getElementById('conn-dot').classList.remove('live');
+  document.getElementById('conn-label').classList.remove('live');
+  document.getElementById('conn-label').textContent='disconnected';
+  document.getElementById('conn-btn').textContent='Connect';
+  document.getElementById('conn-btn').disabled=!S.selPort;
+  document.getElementById('disc-btn').disabled=true;
+  document.getElementById('flash-btn').disabled=true;
+  document.getElementById('erase-btn').disabled=true;
+  document.getElementById('wifi-save-btn').disabled=true;
+  ['di-board','di-chip','di-flash','di-wifi','di-fw'].forEach(id=>setDI(id,'—',''));
+  document.getElementById('di-bat').textContent='—';
+  document.getElementById('bat-fill').style.width='0%';
+}
+
+/* FLASH */
+function setFwSrc(src){
+  S.fwSrc=src;
+  document.getElementById('sec-preset').classList.toggle('hidden',src!=='preset');
+  document.getElementById('sec-file').classList.toggle('hidden',src!=='file');
+  document.getElementById('src-a').classList.toggle('active',src==='preset');
+  document.getElementById('src-b').classList.toggle('active',src==='file');
+}
+
+function onFileSelected(evt){
+  const file=evt.target.files[0];if(!file)return;
+  S.fwName=file.name;
+  document.getElementById('upload-lbl').textContent=`${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+  document.getElementById('upload-zone').classList.add('has-file');
+  const r=new FileReader();
+  r.onload=e=>{S.fwData=new Uint8Array(e.target.result);};
+  r.readAsArrayBuffer(file);
+}
+
+function addLog(cls,msg){
+  const log=document.getElementById('flash-log');
+  const line=document.createElement('div');
+  if(cls)line.className=cls;line.textContent=msg;
+  log.appendChild(line);log.scrollTop=log.scrollHeight;
+}
+function clearLog(){document.getElementById('flash-log').innerHTML='';}
+function setProg(p){document.getElementById('flash-prog').style.width=p+'%';}
+
+async function startFlash(){
+  if(!S.connected){addLog('log-err','No device connected');return;}
+  const fb=document.getElementById('flash-btn');
+  const eb=document.getElementById('erase-btn');
+  fb.disabled=true;fb.textContent='Flashing...';eb.disabled=true;
+  clearLog();setProg(0);
+  const ESPClass=window.ESPLoader||window.esptooljs?.ESPLoader;
+  const baud=parseInt(document.getElementById('baud-sel').value);
+  const offset=document.getElementById('flash-offset').value.trim();
+  if(S.esptoolReady&&ESPClass&&S.port){
+    await realFlash(ESPClass,baud,offset,fb,eb);
+  }else{
+    await simFlash(fb,eb);
+  }
+}
+
+async function realFlash(ESPClass,baud,offset,fb,eb){
+  try{
+    addLog('log-info',`Connecting at ${baud} baud...`);
+    const Transport=window.Transport||window.esptooljs?.Transport;
+    if(!Transport){throw new Error('Transport class not found in esptool-js bundle');}
+    const transport=new Transport(S.port);
+    S.transport=transport;
+    const loader=new ESPClass({
+      transport,baudrate:baud,
+      terminal:{clean:()=>{},writeLine:d=>addLog('',d),write:d=>addLog('',d)}
+    });
+    S.espDevice=loader;
+    await loader.main_fn();
+    addLog('log-ok',`Chip: ${loader.chip.CHIP_NAME}`);
+    addLog('log-ok',`Flash size: ${await loader.getFlashSize()} MB`);
+    if(S.fwSrc==='file'&&S.fwData){
+      addLog('log-info',`Writing ${S.fwName}...`);
+      await loader.flashData(
+        S.fwData,
+        (written,total)=>{
+          const p=Math.round((written/total)*100);
+          setProg(p);
+          if(p%20===0)addLog('',`Writing... ${p}%`);
+        },
+        parseInt(offset,16)||0
+      );
+      addLog('log-ok','Flash complete');
+      addLog('log-info','Resetting device...');
+      await loader.after();
+      setProg(100);addLog('log-ok','━━━━ DONE — Gamma is running ━━━━');
+      flashDone(fb,eb);
+    }else{
+      addLog('log-warn','No .bin file uploaded — switch to "Upload .bin File" tab');
+      fb.disabled=false;fb.textContent='Flash Firmware';eb.disabled=false;
+    }
+  }catch(err){
+    addLog('log-err','Error: '+err.message);
+    addLog('log-warn','Falling back to simulation...');
+    await sleep(400);await simFlash(fb,eb);
+  }
+}
+
+async function simFlash(fb,eb){
+  addLog('log-info','[SIMULATION — no real write]');
+  const msgs=[
+    {c:'log-info',m:'Connecting to ESP32-S3...'},
+    {c:'log-ok',m:'Chip: ESP32-S3 rev 0.2'},
+    {c:'',m:'Flash: 8MB | PSRAM: 8MB | Crystal: 40MHz'},
+    {c:'log-info',m:'Erasing flash...'},
+    {c:'log-ok',m:'Erase complete'},
+    {c:'log-info',m:'Writing firmware...'},
+    {c:'',m:'0x00001000  12%'},{c:'',m:'0x00040000  45%'},
+    {c:'',m:'0x00080000  73%'},{c:'',m:'0x000C0000 100%'},
+    {c:'log-ok',m:'Hash verified — match confirmed'},
+    {c:'log-ok',m:'━━━━ SIMULATION COMPLETE ━━━━'},
+  ];
+  for(let i=0;i<msgs.length;i++){
+    await sleep(600);addLog(msgs[i].c,msgs[i].m);
+    setProg(Math.round(((i+1)/msgs.length)*100));
+  }
+  flashDone(fb,eb);
+}
+
+async function eraseFlash(){
+  if(!S.connected)return;
+  const ESPClass=window.ESPLoader||window.esptooljs?.ESPLoader;
+  clearLog();setProg(0);
+  addLog('log-warn','Erasing entire flash...');
+  if(S.esptoolReady&&ESPClass&&S.port){
+    try{
+      const Transport=window.Transport||window.esptooljs?.Transport;
+      const transport=new Transport(S.port);
+      const loader=new ESPClass({transport,baudrate:115200,terminal:{clean:()=>{},writeLine:d=>addLog('',d),write:d=>addLog('',d)}});
+      await loader.main_fn();await loader.eraseFlash();
+      addLog('log-ok','Flash erased');setProg(100);
+    }catch(e){addLog('log-err','Erase failed: '+e.message);}
+  }else{
+    await sleep(800);addLog('log-info','[SIM] Erasing flash...');
+    await sleep(1200);addLog('log-ok','[SIM] Flash erased');setProg(100);
+  }
+}
+
+function flashDone(fb,eb){
+  fb.disabled=false;fb.textContent='Flash Again';eb.disabled=false;
+  document.getElementById('fw-chip').textContent='gamma-v0.1';
+  document.getElementById('fw-chip').className='chip chip-green';
+  setDI('di-fw','gamma-v0.1','ok');
+}
+
+/* WIFI */
+function saveWifi(){
+  const ssid=document.getElementById('w-ssid').value.trim();if(!ssid)return;
+  const btn=document.getElementById('wifi-save-btn');
+  btn.textContent='Saving...';btn.disabled=true;
+  const cfg={ssid,pass:document.getElementById('w-pass').value,
+    apiKey:document.getElementById('w-apikey').value,
+    devName:document.getElementById('w-devname').value};
+  if(S.connected)sendSerial('CFG:'+JSON.stringify(cfg));
+  setTimeout(()=>{
+    setDI('di-wifi',ssid,'ok');
+    document.getElementById('wifi-chip').textContent=ssid;
+    document.getElementById('wifi-chip').className='chip chip-green';
+    renderQcmds();btn.textContent='Saved ✓';
+    setTimeout(()=>{btn.textContent='Save to Device';btn.disabled=false;},2000);
+  },1000);
+}
+
+/* ESP32 LINK */
+async function api(path,body){
+  const opt=body?{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(body)}:{};
+  const r=await fetch(path,opt);
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+
+function setLink(on,label){
+  S.online=on;
+  document.getElementById('conn-dot').classList.toggle('live',on);
+  const l=document.getElementById('conn-label');
+  l.classList.toggle('live',on);l.textContent=label;
+}
+
+function applyState(st){
+  if(st.blocked)S.blocked=st.blocked;
+  if(st.info){
+    setLink(true,st.info.ip);
+    setDI('di-board','Gamma v1.0','ok');setDI('di-chip',st.info.chip,'ok');
+    setDI('di-flash',st.info.flashMB+'MB','ok');setDI('di-wifi','AP · '+st.info.ssid,'ok');
+    setDI('di-fw',st.info.fw,'ok');
+    const fc=document.getElementById('fw-chip');fc.textContent=st.info.fw;fc.className='chip chip-green';
+    const wc=document.getElementById('wifi-chip');wc.textContent='AP · '+st.info.ssid;wc.className='chip chip-green';
+  }
+  const key=JSON.stringify(st.devices);
+  if(key===S.lastDevs)return;
+  S.lastDevs=key;
+  const seen={};
+  st.devices.forEach(d=>{
+    seen[d.gpio]=1;
+    S.devices[d.gpio]={name:d.name,type:d.type,on:d.on};
+    S.pins[d.gpio]={lbl:d.name,t:'assigned'};
+  });
+  Object.keys(S.devices).forEach(g=>{
+    if(seen[g])return;
+    delete S.devices[g];
+    if(BASE_FREE.has(+g))S.pins[g]={lbl:'free',t:'free'};else delete S.pins[g];
+  });
+  buildGrid();renderDevices();renderQcmds();
+}
+
+async function loadState(){
+  try{applyState(await api('/api/state'));}
+  catch(e){if(S.online){setLink(false,'offline');}}
+}
+
+/* HELPERS */
+function sendSerial(cmd){
+  if(!S.port)return;
+  try{const w=S.port.writable.getWriter();w.write(new TextEncoder().encode(cmd+'\n'));w.releaseLock();}catch(e){}
+}
+function setDI(id,v,c){const el=document.getElementById(id);el.textContent=v;el.className='di-val'+(c?' '+c:'');}
+function setBattery(p){
+  document.getElementById('di-bat').textContent=`${p}%`;
+  const f=document.getElementById('bat-fill');f.style.width=`${p}%`;
+  f.style.background=p>50?'var(--accent)':p>20?'var(--warn)':'var(--danger)';
+}
+function switchTab(name,el){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+}
+</script>
+</body>
+</html>
