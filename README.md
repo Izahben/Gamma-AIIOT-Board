@@ -28,7 +28,7 @@ Early stage, built step by step.
 - [x] Pick any usable GPIO, name it, assign it as an LED or relay, and toggle it
 - [x] Devices are saved on the board and survive power loss
 - [x] Dashboard works on phone, tablet and desktop
-- [ ] Servo, push button and switch
+- [x] Servo, push button and switch
 - [ ] Remote access from anywhere (cloud link)
 - [ ] AI chat that controls devices by name
 - [ ] I2C sensors, such as temperature
